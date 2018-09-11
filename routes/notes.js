@@ -8,12 +8,6 @@ const knex = require('../knex');
 // Create an router instance (aka "mini-app")
 const router = express.Router();
 
-const throw404Error = (next) => {
-  const err = new Error('Item does not exist');
-  err.status = 404;
-  next(err);
-};
-
 // GET / with optional `searchTerm` parameter
 router.get('/', (req, res, next) => {
   // Fetch search term from query URL
@@ -29,11 +23,10 @@ router.get('/', (req, res, next) => {
     .select('id', 'title', 'content')
     .orderBy('notes.id')
     .then(results => {
-      res.status(200).json(results);
+      if (results.length === 0) return next();
+      else return res.status(200).json(results);
     })
-    .catch(err => {
-      next(err);
-    });
+    .catch(err => next(err));
 });
 
 // GET /:id endpoint
@@ -46,14 +39,14 @@ router.get('/:id', (req, res, next) => {
     .select(['id', 'title', 'content'])
     .then((dbResponse) => {
       // Check to see if query returned something
-      if (dbResponse.length === 0) throw404Error(next);
+      if (dbResponse.length === 0) return next();
       else {
         // Grab the note from the response array so we can return an object
         const note = dbResponse[0];
-        res.status(200).json(note);
+        return res.status(200).json(note);
       }
     })
-    .catch((e) => next(e));
+    .catch(err => next(err));
 });
 
 // PUT to update items by ID in `notes` table
@@ -73,6 +66,7 @@ router.put('/:id', (req, res, next) => {
     err.status = 400;
     return next(err);
   }
+
   // Update note from 'notes' table using ID
   knex('notes')
     .where('id', id)
@@ -83,12 +77,10 @@ router.put('/:id', (req, res, next) => {
     .returning(['id', 'title', 'content'])
     .then(dbResponse => {
       // Check to see if query returned anything
-      if (dbResponse.length === 0) throw404Error(next);
-      else res.status(200).json(dbResponse);
+      if (dbResponse.length === 0) return next();
+      else return res.status(200).json(dbResponse);
     })
-    .catch(err => {
-      next(err);
-    });
+    .catch(err => next(err));
 });
 
 // POST to / endpoint
@@ -112,10 +104,10 @@ router.post('/', (req, res, next) => {
     })
     .returning(['id', 'title', 'content'])
     .then((dbResponse) => {
-      if (dbResponse.length === 0) throw404Error(next);
-      else res.status(201).json(dbResponse);
+      if (dbResponse.length === 0) return next();
+      else return res.status(201).json(dbResponse);
     })
-    .catch(e => next(e));
+    .catch(err => next(err));
 
 });
 
@@ -130,12 +122,10 @@ router.delete('/:id', (req, res, next) => {
     .then((dbResponse) => {
       // Check if DB did not delete anything 
       // (SQL returns # of items deleted here)
-      if (dbResponse === 0) throw404Error(next);
-      else res.sendStatus(204);
+      if (dbResponse === 0) return next();
+      else return res.sendStatus(204);
     })
-    .catch(err => {
-      next(err);
-    });
+    .catch(err => next(err));
 });
 
 module.exports = router;
