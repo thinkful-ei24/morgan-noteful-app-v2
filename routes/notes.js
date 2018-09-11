@@ -77,8 +77,13 @@ router.put('/:id', (req, res, next) => {
     .where('id', id)
     .returning(['id', 'title', 'content'])
     .then(item => {
+      console.log(item);
       // Check to see if query returned anything
-      if (item[0] === undefined) next();
+      if (item[0] === undefined) {
+        const err = new Error('Incorrect `id` specified');
+        err.status = 400;
+        return next(err);
+      }
       else res.status(200).json(item);
     })
     .catch(err => {
@@ -88,25 +93,34 @@ router.put('/:id', (req, res, next) => {
 
 // Post (insert) an item
 router.post('/', (req, res, next) => {
-  const { title, content } = req.body;
-
-  const newItem = { title, content };
+  const input = {
+    title: req.body.title, 
+    content: req.body.content
+  };
   /***** Never trust users - validate input *****/
-  if (!newItem.title) {
+  if (input.title === undefined) {
     const err = new Error('Missing `title` in request body');
     err.status = 400;
     return next(err);
   }
 
-  notes.create(newItem)
-    .then(item => {
-      if (item) {
-        res.location(`http://${req.headers.host}/notes/${item.id}`).status(201).json(item);
+  knex('notes')
+    .insert({
+      title: input.title,
+      content: input.content
+    })
+    .returning(['id', 'title', 'content'])
+    .then((dbRes) => {
+      if (dbRes[0] === undefined) {
+        const err = new Error('Error adding new item to database');
+        next(err);
+      }
+      else {
+        res.status(201).json(dbRes);
       }
     })
-    .catch(err => {
-      next(err);
-    });
+    .catch(e => next(e));
+
 });
 
 // Delete an item
