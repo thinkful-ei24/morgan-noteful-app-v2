@@ -1,4 +1,6 @@
-'use strict';
+/* * * * * * * * * * * * *
+ * /api/notes/ endpoints *
+ * * * * * * * * * * * * */
 
 const express = require('express');
 const knex = require('../knex');
@@ -6,138 +8,129 @@ const knex = require('../knex');
 // Create an router instance (aka "mini-app")
 const router = express.Router();
 
+const throw404Error = (next) => {
+  const err = new Error('Item does not exist');
+  err.status = 404;
+  next(err);
+};
 
-// Get All (and search by query)
+// GET / with optional `searchTerm` parameter
 router.get('/', (req, res, next) => {
+  // Fetch search term from query URL
   const searchTerm = req.query.searchTerm;
-
-  knex.select('id', 'title', 'content')
-    .from('notes')
+  // Query 'notes' table
+  knex('notes')
+    // if a user searches, add filter to query
     .modify(function (queryBuilder) {
       if (searchTerm) {
         queryBuilder.where('title', 'like', `%${searchTerm}%`);
       }
     })
+    .select('id', 'title', 'content')
     .orderBy('notes.id')
     .then(results => {
-      res.json(results);
+      res.status(200).json(results);
     })
     .catch(err => {
       next(err);
     });
 });
 
-// Get a single item
+// GET /:id endpoint
 router.get('/:id', (req, res, next) => {
+  // Fetch ID from query URL
   const id = req.params.id;
-
+  // Query 'notes' table
   knex('notes')
-    .select(['id', 'title', 'content'])
     .where('id', id)
-    .then((dbRes) => {
+    .select(['id', 'title', 'content'])
+    .then((dbResponse) => {
       // Check to see if query returned something
-      if (dbRes[0] === undefined) {
-        next();
-      } 
+      if (dbResponse.length === 0) throw404Error(next);
       else {
         // Grab the note from the response array so we can return an object
-        const note = dbRes[0];
+        const note = dbResponse[0];
         res.status(200).json(note);
       }
     })
     .catch((e) => next(e));
 });
 
-// Put update an item
+// PUT to update items by ID in `notes` table
 router.put('/:id', (req, res, next) => {
+  // Fetch ID from query URL 
   const id = req.params.id;
 
   /***** Never trust users - validate input *****/
-  const updateObj = {};
-  const updateableFields = ['title', 'content'];
+  const userInput = {
+    title: req.body.title,
+    content: req.body.content
+  };
 
-  updateableFields.forEach(field => {
-    if (field in req.body) {
-      updateObj[field] = req.body[field];
-    }
-  });
-
-  /***** Never trust users - validate input *****/
-  if (!updateObj.title) {
-    const err = new Error('Missing `title` in request body');
+  // Validate that user entered title (required)
+  if (userInput.title === undefined) {
+    const err = new Error('Missing `title` in request body.');
     err.status = 400;
     return next(err);
   }
-
+  // Update note from 'notes' table using ID
   knex('notes')
-    .update({
-      title: updateObj.title,
-      content: updateObj.content
-    })
     .where('id', id)
+    .update({
+      title: userInput.title,
+      content: userInput.content
+    })
     .returning(['id', 'title', 'content'])
-    .then(item => {
-      console.log(item);
+    .then(dbResponse => {
       // Check to see if query returned anything
-      if (item[0] === undefined) {
-        const err = new Error('Incorrect `id` specified');
-        err.status = 400;
-        return next(err);
-      }
-      else res.status(200).json(item);
+      if (dbResponse.length === 0) throw404Error(next);
+      else res.status(200).json(dbResponse);
     })
     .catch(err => {
       next(err);
     });
 });
 
-// Post (insert) an item
+// POST to / endpoint
 router.post('/', (req, res, next) => {
-  const input = {
+  // Fetch title, content from request body
+  const userInput = {
     title: req.body.title, 
     content: req.body.content
   };
-  /***** Never trust users - validate input *****/
-  if (input.title === undefined) {
-    const err = new Error('Missing `title` in request body');
+  // Validate that user entered title (required)
+  if (userInput.title === undefined) {
+    const err = new Error('Missing `title` in request body.');
     err.status = 400;
     return next(err);
   }
-
+  // Query `notes` table
   knex('notes')
     .insert({
-      title: input.title,
-      content: input.content
+      title: userInput.title,
+      content: userInput.content
     })
     .returning(['id', 'title', 'content'])
-    .then((dbRes) => {
-      if (dbRes[0] === undefined) {
-        const err = new Error('Error adding new item to database');
-        next(err);
-      }
-      else {
-        res.status(201).json(dbRes);
-      }
+    .then((dbResponse) => {
+      if (dbResponse.length === 0) throw404Error(next);
+      else res.status(201).json(dbResponse);
     })
     .catch(e => next(e));
 
 });
 
-// Delete an item
+// DELETE from /id endpoint
 router.delete('/:id', (req, res, next) => {
+  // Fetch ID from request URL
   const id = req.params.id;
-
+  // Query `notes` table
   knex('notes')
     .where('id', id)
     .delete()
-    .then((dbRes) => {
-      console.log(dbRes);
-      // If DB did not delete anything
-      if (dbRes === 0) {
-        const err = new Error('Item does not exist');
-        err.status = 400;
-        next(err);
-      }
+    .then((dbResponse) => {
+      // Check if DB did not delete anything 
+      // (SQL returns # of items deleted here)
+      if (dbResponse === 0) throw404Error(next);
       else res.sendStatus(204);
     })
     .catch(err => {
