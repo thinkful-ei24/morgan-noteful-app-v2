@@ -35,7 +35,6 @@ router.get('/:id', (req, res, next) => {
     .select(['id', 'title', 'content'])
     .where('id', id)
     .then((dbRes) => {
-      console.log(dbRes);
       // Check to see if query returned something
       if (dbRes[0] === undefined) {
         next();
@@ -70,13 +69,17 @@ router.put('/:id', (req, res, next) => {
     return next(err);
   }
 
-  notes.update(id, updateObj)
+  knex('notes')
+    .update({
+      title: updateObj.title,
+      content: updateObj.content
+    })
+    .where('id', id)
+    .returning(['id', 'title', 'content'])
     .then(item => {
-      if (item) {
-        res.json(item);
-      } else {
-        next();
-      }
+      // Check to see if query returned anything
+      if (item[0] === undefined) next();
+      else res.status(200).json(item);
     })
     .catch(err => {
       next(err);
