@@ -127,9 +127,18 @@ router.post('/', (req, res, next) => {
 router.delete('/:id', (req, res, next) => {
   const id = req.params.id;
 
-  notes.delete(id)
-    .then(() => {
-      res.sendStatus(204);
+  knex('notes')
+    .where('id', id)
+    .delete()
+    .then((dbRes) => {
+      console.log(dbRes);
+      // If DB did not delete anything
+      if (dbRes === 0) {
+        const err = new Error('Item does not exist');
+        err.status = 400;
+        next(err);
+      }
+      else res.sendStatus(204);
     })
     .catch(err => {
       next(err);
