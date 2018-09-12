@@ -21,7 +21,7 @@ router.get('/', (req, res, next) => {
       }
     })
     .select('id', 'title', 'content')
-    .orderBy('notes.id')
+    .orderBy('id')
     .then(results => {
       if (results.length === 0) return next();
       else return res.status(200).json(results);
