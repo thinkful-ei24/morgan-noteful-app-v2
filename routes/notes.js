@@ -60,6 +60,7 @@ router.put('/:id', (req, res, next) => {
   const id = req.params.id;
   const title = req.body.title;
   const content = req.body.content;
+  const folder_id = req.body.folderId || null;
   // Validate that user entered title (required)
   if (!title) {
     const err = new Error('Missing `title` in request body.');
@@ -70,13 +71,25 @@ router.put('/:id', (req, res, next) => {
   knex('notes')
     .update({
       title,
-      content
+      content,
+      folder_id
     })
     .where('id', id)
-    .returning(['id', 'title', 'content'])
+    .returning('id')
     .then(dbResponse => {
+      return knex
+        .select([
+          'notes.id', 'title', 'content',
+          'folders.id as folderId',
+          'folders.name as folderName' 
+        ])
+        .from('notes').leftJoin('folders', 'notes.folder_id', 'folders.id')
+        .where('notes.id', dbResponse[0]);
+    })
+    .then(dbResponse => {
+      const result = dbResponse[0];
       if (!dbResponse.length) return next();
-      else return res.status(200).json(dbResponse[0]);
+      else return res.location(`${req.originalUrl}/${result.id}`).status(200).json(result);
     })
     .catch(err => next(err));
 });
@@ -85,6 +98,7 @@ router.put('/:id', (req, res, next) => {
 router.post('/', (req, res, next) => {
   const title = req.body.title;
   const content = req.body.content;
+  const folderId = req.body.folderId || null;
   // Validate that user entered title (required)
   if (!title) {
     const err = new Error('Missing `title` in request body.');
@@ -95,16 +109,31 @@ router.post('/', (req, res, next) => {
   knex
     .insert({
       title,
-      content
+      content,
+      folder_id: folderId
     })
     .into('notes')
-    .returning(['id', 'title', 'content'])
+    .returning('id')
+    // Using the id generated from inserting a note into `notes`,
+    // left join to grab the corresponding folder information
     .then((dbResponse) => {
+      // SELECT FROM notes LEFT JOIN folders ON notes.folder_id = folders.id
+      // WHERE notes.id = `noteId`
+      return knex
+        .select([
+          'notes.id', 'title', 'content', 
+          'folder_id as folderId', 
+          'folders.name as folderName'
+        ])
+        .from('notes').leftJoin('folders', 'notes.folder_id', 'folders.id')
+        .where('notes.id', dbResponse[0]);
+    })
+    .then((dbResponse) => {
+      const result = dbResponse[0];
       if (!dbResponse.length) return next();
-      else return res.status(201).json(dbResponse[0]);
+      else return res.location(`${req.originalUrl}/${result['id']}`).status(201).json(result);
     })
     .catch(err => next(err));
-
 });
 
 // DELETE from /id endpoint
