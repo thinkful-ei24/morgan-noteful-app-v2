@@ -10,21 +10,19 @@ const router = express.Router();
 
 // GET / with optional `searchTerm` parameter
 router.get('/', (req, res, next) => {
-  // Fetch search term from query URL
   const searchTerm = req.query.searchTerm;
-  // Query 'notes' table
-  knex('notes')
+  // SELECT FROM notes
+  knex
+    .select(['id', 'title', 'content'])
+    .from('notes')
     // if a user searches, add filter to query
-    .modify(function (queryBuilder) {
+    .modify(queryBuilder => {
       if (searchTerm) {
         queryBuilder.where('title', 'like', `%${searchTerm}%`);
       }
     })
-    .select('id', 'title', 'content')
     .orderBy('id')
-    .then(results => {
-      return res.status(200).json(results);
-    })
+    .then(results => res.status(200).json(results))
     .catch(err => next(err));
 });
 
@@ -32,79 +30,65 @@ router.get('/', (req, res, next) => {
 router.get('/:id', (req, res, next) => {
   // Fetch ID from query URL
   const id = req.params.id;
-  // Query 'notes' table
-  knex('notes')
-    .where('id', id)
+  // SELECT FROM notes WHERE id = `id`
+  knex
     .select(['id', 'title', 'content'])
+    .from('notes')
+    .where('id', id)
     .then((dbResponse) => {
-      // Check to see if query returned something
-      if (dbResponse.length === 0) return next();
-      else {
-        // Grab the note from the response array so we can return an object
-        const note = dbResponse[0];
-        return res.status(200).json(note);
-      }
+      if (!dbResponse.length) return next();
+      else return res.status(200).json(dbResponse[0]);
     })
     .catch(err => next(err));
 });
 
 // PUT to update items by ID in `notes` table
 router.put('/:id', (req, res, next) => {
-  // Fetch ID from query URL 
   const id = req.params.id;
-
-  /***** Never trust users - validate input *****/
-  const userInput = {
-    title: req.body.title,
-    content: req.body.content
-  };
-
+  const title = req.body.title;
+  const content = req.body.content;
   // Validate that user entered title (required)
-  if (userInput.title === undefined) {
+  if (!title) {
     const err = new Error('Missing `title` in request body.');
     err.status = 400;
     return next(err);
   }
-
-  // Update note from 'notes' table using ID
+  // UPDATE notes SET (title, content) WHERE id = `id`
   knex('notes')
-    .where('id', id)
     .update({
-      title: userInput.title,
-      content: userInput.content
+      title,
+      content
     })
+    .where('id', id)
     .returning(['id', 'title', 'content'])
     .then(dbResponse => {
-      // Check to see if query returned anything
-      if (dbResponse.length === 0) return next();
-      else return res.status(200).json(dbResponse);
+      if (!dbResponse.length) return next();
+      else return res.status(200).json(dbResponse[0]);
     })
     .catch(err => next(err));
 });
 
 // POST to / endpoint
 router.post('/', (req, res, next) => {
-  // Fetch title, content from request body
-  const userInput = {
-    title: req.body.title, 
-    content: req.body.content
-  };
+  const title = req.body.title;
+  const content = req.body.content;
   // Validate that user entered title (required)
-  if (userInput.title === undefined) {
+  if (!title) {
     const err = new Error('Missing `title` in request body.');
     err.status = 400;
     return next(err);
   }
-  // Query `notes` table
-  knex('notes')
+  // INSERT INTO notes (title, content)
+  knex
     .insert({
-      title: userInput.title,
-      content: userInput.content
+      title,
+      content
     })
+    .into('notes')
     .returning(['id', 'title', 'content'])
     .then((dbResponse) => {
-      if (dbResponse.length === 0) return next();
-      else return res.status(201).json(dbResponse);
+      if (!dbResponse.length) return next();
+      else return res.status(201).json(dbResponse[0]);
     })
     .catch(err => next(err));
 
@@ -116,13 +100,12 @@ router.delete('/:id', (req, res, next) => {
   const id = req.params.id;
   // Query `notes` table
   knex('notes')
-    .where('id', id)
     .delete()
+    .from('notes')
+    .where('id', id)
     .then((dbResponse) => {
-      // Check if DB did not delete anything 
-      // (SQL returns # of items deleted here)
       if (dbResponse === 0) return next();
-      else return res.sendStatus(204);
+      else return res.status(204).end();
     })
     .catch(err => next(err));
 });
