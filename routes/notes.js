@@ -31,7 +31,7 @@ router.get('/', (req, res, next) => {
       if (folderId) queryBuilder.where('folder_id', folderId);
     })
     .orderBy('id')
-    .then(results => res.status(200).json(results))
+    .then(dbResponse => res.status(200).json(dbResponse))
     .catch(err => next(err));
 });
 
@@ -39,11 +39,15 @@ router.get('/', (req, res, next) => {
 router.get('/:id', (req, res, next) => {
   // Fetch ID from query URL
   const id = req.params.id;
-  // SELECT FROM notes WHERE id = `id`
+  // SELECT FROM notes LEFT JOIN folders ON notes.folder_id = folder.id WHERE id = `id`
   knex
-    .select(['id', 'title', 'content'])
-    .from('notes')
-    .where('id', id)
+    .select([
+      'notes.id', 'title', 'content',
+      'folders.id as folderId', 
+      'folders.name as folderName'
+    ])
+    .from('notes').leftJoin('folders', 'notes.folder_id', 'folders.id')
+    .where('notes.id', id)
     .then((dbResponse) => {
       if (!dbResponse.length) return next();
       else return res.status(200).json(dbResponse[0]);
