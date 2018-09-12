@@ -34,12 +34,12 @@ INSERT INTO notes (title, content, folder_id) VALUES
   ('What the government doesn''t want you to know about cats', 'Posuere sollicitudin aliquam.', 102),
   ('The most boring article about cats you''ll ever read', 'Lorem ipsum dolor.', 102),
   ('Cats are cool. Just kidding.', 'Posuere sollicitudin aliquam nisl.', 102),
-  ('7 things lady gaga has in common with cats', 'Lorem id est laborum.', 102),
-  ('The most incredible article about cats you''ll ever read', 'mollit anim id est laborum.', 102),
-  ('What the government doesn''t want you to know about dogs', 'Posuere sollicitudin aliquam.', 102),
-  ('The most exciting article about dogs you''ll ever read', 'Lorem ipsum dolor.', 102),
-  ('Dogs are cool. Not just kidding.', 'Posuere sollicitudin aliquam nisl.', 102),
-  ('7 things jesus has in common with dogs', 'Lorem id est laborum.', 102);
+  ('7 things lady gaga has in common with cats', 'Lorem id est laborum.', 100),
+  ('The most incredible article about cats you''ll ever read', 'mollit anim id est laborum.', 100),
+  ('What the government doesn''t want you to know about dogs', 'Posuere sollicitudin aliquam.', 100),
+  ('The most exciting article about dogs you''ll ever read', 'Lorem ipsum dolor.', 100),
+  ('Dogs are cool. Not just kidding.', 'Posuere sollicitudin aliquam nisl.', 100),
+  ('7 things jesus has in common with dogs', 'Lorem id est laborum.', 101);
   
 INSERT INTO notes (title, content) VALUES
   ('We''re going to talk about dogs now', 'Lorem ipsum.'),

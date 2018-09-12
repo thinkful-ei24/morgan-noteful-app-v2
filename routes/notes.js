@@ -8,18 +8,27 @@ const knex = require('../knex');
 // Create an router instance (aka "mini-app")
 const router = express.Router();
 
-// GET / with optional `searchTerm` parameter
+// GET / with optional `searchTerm` and `folderId` parameters
 router.get('/', (req, res, next) => {
   const searchTerm = req.query.searchTerm;
-  // SELECT FROM notes
+  const folderId = req.query.folderId;
+  // SELECT FROM notes LEFT JOIN folders ON notes.folder_id = folders.id
+  // (if searchTerm) WHERE title LIKE %searchTerm%
+  // (if folderId) WHERE folder_id = `folderId`
   knex
-    .select(['id', 'title', 'content'])
-    .from('notes')
-    // if a user searches, add filter to query
+    .select([
+      'notes.id', 'title', 'content',
+      'folders.id as folderId', 
+      'folders.name as folderName'
+    ])
+    .from('notes').leftJoin('folders', 'notes.folder_id', 'folders.id')
+    // Optional searchTerm filter
     .modify(queryBuilder => {
-      if (searchTerm) {
-        queryBuilder.where('title', 'like', `%${searchTerm}%`);
-      }
+      if (searchTerm) queryBuilder.where('title', 'like', `%${searchTerm}%`);
+    })
+    // Optional folderId filter
+    .modify(queryBuilder => {
+      if (folderId) queryBuilder.where('folder_id', folderId);
     })
     .orderBy('id')
     .then(results => res.status(200).json(results))
