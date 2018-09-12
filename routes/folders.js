@@ -28,4 +28,26 @@ router.get('/:id', (req, res, next) => {
     .catch(err => next(err));
 });
 
+router.post('/', (req, res, next) => {
+  const name = req.body.name;
+
+  // Validate name field (required)
+  if (!name) {
+    const err = new Error('Missing `name` in request body.');
+    err.status = 400;
+    next(err);
+  }
+
+  knex
+    .insert({ name })
+    .into('folders')
+    .returning(['id', 'name'])
+    .then(dbResponse => {
+      if (!dbResponse.length) return next();
+      else return res.status(201).json(dbResponse);
+    })
+    .catch(err => next(err));
+
+});
+
 module.exports = router;
