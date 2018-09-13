@@ -26,7 +26,34 @@ router.get('/:id', (req, res, next) => {
     .catch(err => next(err));
 });
 
-router.post('/', (req, res, next) => {});
+router.post('/', (req, res, next) => {
+  const item = {
+    name: req.body.name
+  };
+  // Valid that name included in request body (required)
+  if (!item.name) {
+    const err = new Error('Missing `name` in request body.');
+    err.status = 400;
+    return next(err);
+  }
+
+  knex
+    .insert(item)
+    .into('tags')
+    .returning(['id', 'name'])
+    .then((dbResponse) => {
+      return res.status(201).json(dbResponse);
+    })
+    .catch(err => {
+      // Handle UNIQUE constraint violation
+      if (err.code === '23505') {
+        const error = new Error('This tag already exists.');
+        error.status = 400;
+        return next(error);
+      }
+      else return next(err);
+    });
+});
 
 router.put('/:id', (req, res, next) => {});
 
