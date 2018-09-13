@@ -1,6 +1,8 @@
 -- psql -U dev -d noteful-app -f ./noteful-app.sql
 
 -- Wipes table so this file can recreate it each time it is ran
+DROP TABLE IF EXISTS notes_tags;
+DROP TABLE IF EXISTS tags;
 DROP TABLE IF EXISTS notes;
 DROP TABLE IF EXISTS folders;
 
@@ -29,6 +31,7 @@ CREATE TABLE notes (
 );
 
 
+
 INSERT INTO notes (title, content, folder_id) VALUES
   ('5 life lessons learned from cats', 'Lorem ipsum.', 102),
   ('What the government doesn''t want you to know about cats', 'Posuere sollicitudin aliquam.', 102),
@@ -44,6 +47,41 @@ INSERT INTO notes (title, content, folder_id) VALUES
 INSERT INTO notes (title, content) VALUES
   ('We''re going to talk about dogs now', 'Lorem ipsum.'),
   ('Dogs dogs dogs dogs dogs. PUPPIES! Dogs.', 'mollit anim id est laborum.');
+
+CREATE TABLE tags (
+id serial NOT NULL PRIMARY KEY,
+name text NOT NULL UNIQUE
+);
+
+INSERT INTO tags (name) VALUES
+   ('work'),
+   ('play'),
+   ('school');
+
+-- SELECT * FROM tags;
+
+CREATE TABLE notes_tags (
+  note_id INTEGER NOT NULL REFERENCES notes ON DELETE CASCADE,
+  tag_id INTEGER NOT NULL REFERENCES tags ON DELETE CASCADE
+);
+
+INSERT INTO notes_tags (note_id, tag_id) VALUES
+  (1000, 1),
+  (1001,2),
+  (1002,3),
+  (1003,1),
+  (1004,2),
+  (1005,3),
+  (1006,1),
+  (1007,2),
+  (1008,3),
+  (1009,1),
+  (1010,2);
+
+-- SELECT title, tags.name, folders.name FROM notes
+-- LEFT JOIN folders ON notes.folder_id = folders.id
+-- LEFT JOIN notes_tags ON notes.id = notes_tags.note_id
+-- LEFT JOIN tags ON notes_tags.tag_id = tags.id;
 
 -- SELECT * FROM notes;
 

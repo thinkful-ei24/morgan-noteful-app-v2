@@ -130,6 +130,8 @@ router.post('/', (req, res, next) => {
     })
     .then((dbResponse) => {
       const result = dbResponse[0];
+      console.dir(res.location);
+      console.log(`${req.originalUrl}/${result.id}`);
       if (!dbResponse.length) return next();
       else return res.location(`${req.originalUrl}/${result['id']}`).status(201).json(result);
     })
