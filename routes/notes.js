@@ -52,10 +52,10 @@ router.get('/:id', (req, res, next) => {
   // Fetch ID from query URL
   const id = req.params.id;
   // SELECT FROM notes LEFT JOIN folders ON notes.folder_id = folder.id WHERE id = `id`
-  getNoteById()
+  getNoteById(id)
     .then((dbResponse) => {
       if (!dbResponse.length) return next();
-      else return res.status(200).json(dbResponse[0]);
+      else return res.status(200).json(hydrateNotes(dbResponse)[0]);
     })
     .catch(err => next(err));
 });
