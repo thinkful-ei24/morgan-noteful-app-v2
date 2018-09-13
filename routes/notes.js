@@ -8,6 +8,8 @@ const knex = require('../knex');
 // Create an router instance (aka "mini-app")
 const router = express.Router();
 
+// TODO: getNoteById() util function to make code more DRY
+
 // GET / with optional `searchTerm` and `folderId` parameters
 router.get('/', (req, res, next) => {
   const searchTerm = req.query.searchTerm;
@@ -19,9 +21,14 @@ router.get('/', (req, res, next) => {
     .select([
       'notes.id', 'title', 'content',
       'folders.id as folderId', 
-      'folders.name as folderName'
+      'folders.name as folderName',
+      'tags.id as tagId',
+      'tags.name as tagName'
     ])
-    .from('notes').leftJoin('folders', 'notes.folder_id', 'folders.id')
+    .from('notes')
+    .leftJoin('folders', 'notes.folder_id', 'folders.id')
+    .leftJoin('notes_tags', 'notes.id', 'note_id')
+    .leftJoin('tags', 'tag_id', 'tags.id')
     // Optional searchTerm filter
     .modify(queryBuilder => {
       if (searchTerm) queryBuilder.where('title', 'like', `%${searchTerm}%`);
@@ -153,5 +160,7 @@ router.delete('/:id', (req, res, next) => {
     })
     .catch(err => next(err));
 });
+
+// TODO: Add error handler for UNIQUE violations
 
 module.exports = router;
