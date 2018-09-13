@@ -27,6 +27,16 @@ const getNoteById = (id = null) => {
     });
 };
 
+const addTags = (noteId, tags) => {
+  const tagList = tags.map(tagId => ({
+    note_id: noteId,
+    tag_id: tagId
+  }));
+  return knex
+    .insert(tagList)
+    .into('notes_tags');
+};
+
 // GET / with optional `searchTerm` and `folderId` parameters
 router.get('/', (req, res, next) => {
   const searchTerm = req.query.searchTerm;
@@ -66,6 +76,7 @@ router.put('/:id', (req, res, next) => {
   const title = req.body.title;
   const content = req.body.content;
   const folder_id = req.body.folderId || null;
+  const tags = req.body.tags;
   // Validate that user entered title (required)
   if (!title) {
     const err = new Error('Missing `title` in request body.');
@@ -80,21 +91,20 @@ router.put('/:id', (req, res, next) => {
       folder_id
     })
     .where('id', id)
-    .returning('id')
-    .then(dbResponse => {
+    .then(() => {
       return knex
-        .select([
-          'notes.id', 'title', 'content',
-          'folders.id as folderId',
-          'folders.name as folderName' 
-        ])
-        .from('notes').leftJoin('folders', 'notes.folder_id', 'folders.id')
-        .where('notes.id', dbResponse[0]);
+        .delete()
+        .from('notes_tags')
+        .where('note_id', id);
     })
-    .then(dbResponse => {
-      const result = dbResponse[0];
+    .then(() => addTags(id, tags))
+    .then(() => getNoteById(id))
+    .then((dbResponse) => {
       if (!dbResponse.length) return next();
-      else return res.location(`${req.originalUrl}/${result.id}`).status(200).json(result);
+      else return res
+        .location(`${req.originalUrl}/${id}`)
+        .status(200)
+        .json(hydrateNotes(dbResponse)[0]);
     })
     .catch(err => next(err));
 });
@@ -123,13 +133,7 @@ router.post('/', (req, res, next) => {
     .returning('id')
     .then((dbResponse) => {
       noteId = dbResponse[0];
-      const tagList = tags.map(tagId => ({
-        note_id: noteId,
-        tag_id: tagId
-      }));
-      return knex
-        .insert(tagList)
-        .into('notes_tags');
+      return addTags(noteId, tags);
     })
     .then(() => {
       return getNoteById(noteId);
