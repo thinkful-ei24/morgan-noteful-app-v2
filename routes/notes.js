@@ -1,11 +1,10 @@
 /* * * * * * * * * * * * *
  * /api/notes/ endpoints *
  * * * * * * * * * * * * */
-
-const express = require('express');
 const knex = require('../knex');
-
+const hydrateNotes = require('../utils/hydrateNotes');
 // Create an router instance (aka "mini-app")
+const express = require('express');
 const router = express.Router();
 
 const getNoteById = (id = null) => {
@@ -45,7 +44,9 @@ router.get('/', (req, res, next) => {
       if (folderId) queryBuilder.where('folder_id', folderId);
     })
     .orderBy('id')
-    .then(dbResponse => res.status(200).json(dbResponse))
+    .then(dbResponse => {
+      res.status(200).json(hydrateNotes(dbResponse));
+    })
     .catch(err => next(err));
 });
 
