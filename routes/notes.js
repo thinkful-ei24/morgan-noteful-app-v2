@@ -104,12 +104,14 @@ router.post('/', (req, res, next) => {
   const title = req.body.title;
   const content = req.body.content;
   const folderId = req.body.folderId || null;
+  const tags = req.body.tags || null;
   // Validate that user entered title (required)
   if (!title) {
     const err = new Error('Missing `title` in request body.');
     err.status = 400;
     return next(err);
   }
+  let noteId;
   // INSERT INTO notes (title, content)
   knex
     .insert({
@@ -119,26 +121,25 @@ router.post('/', (req, res, next) => {
     })
     .into('notes')
     .returning('id')
-    // Using the id generated from inserting a note into `notes`,
-    // left join to grab the corresponding folder information
     .then((dbResponse) => {
-      // SELECT FROM notes LEFT JOIN folders ON notes.folder_id = folders.id
-      // WHERE notes.id = `noteId`
+      noteId = dbResponse[0];
+      const tagList = tags.map(tagId => ({
+        note_id: noteId,
+        tag_id: tagId
+      }));
       return knex
-        .select([
-          'notes.id', 'title', 'content', 
-          'folder_id as folderId', 
-          'folders.name as folderName'
-        ])
-        .from('notes').leftJoin('folders', 'notes.folder_id', 'folders.id')
-        .where('notes.id', dbResponse[0]);
+        .insert(tagList)
+        .into('notes_tags');
     })
-    .then((dbResponse) => {
-      const result = dbResponse[0];
-      console.dir(res.location);
-      console.log(`${req.originalUrl}/${result.id}`);
+    .then(() => {
+      return getNoteById(noteId);
+    })
+    .then(dbResponse => {
       if (!dbResponse.length) return next();
-      else return res.location(`${req.originalUrl}/${result['id']}`).status(201).json(result);
+      return res
+        .status(201)
+        .location(`${req.originalUrl}/${noteId}`)
+        .json(hydrateNotes(dbResponse)[0]);
     })
     .catch(err => next(err));
 });
