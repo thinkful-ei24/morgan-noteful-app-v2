@@ -8,16 +8,8 @@ const knex = require('../knex');
 // Create an router instance (aka "mini-app")
 const router = express.Router();
 
-// TODO: getNoteById() util function to make code more DRY
-
-// GET / with optional `searchTerm` and `folderId` parameters
-router.get('/', (req, res, next) => {
-  const searchTerm = req.query.searchTerm;
-  const folderId = req.query.folderId;
-  // SELECT FROM notes LEFT JOIN folders ON notes.folder_id = folders.id
-  // (if searchTerm) WHERE title LIKE %searchTerm%
-  // (if folderId) WHERE folder_id = `folderId`
-  knex
+const getNoteById = (id = null) => {
+  return knex
     .select([
       'notes.id', 'title', 'content',
       'folders.id as folderId', 
@@ -29,6 +21,21 @@ router.get('/', (req, res, next) => {
     .leftJoin('folders', 'notes.folder_id', 'folders.id')
     .leftJoin('notes_tags', 'notes.id', 'note_id')
     .leftJoin('tags', 'tag_id', 'tags.id')
+    .modify(queryBuilder => {
+      if (id) {
+        queryBuilder.where('id', id);
+      }
+    });
+};
+
+// GET / with optional `searchTerm` and `folderId` parameters
+router.get('/', (req, res, next) => {
+  const searchTerm = req.query.searchTerm;
+  const folderId = req.query.folderId;
+  // SELECT FROM notes LEFT JOIN folders ON notes.folder_id = folders.id
+  // (if searchTerm) WHERE title LIKE %searchTerm%
+  // (if folderId) WHERE folder_id = `folderId`
+  getNoteById()
     // Optional searchTerm filter
     .modify(queryBuilder => {
       if (searchTerm) queryBuilder.where('title', 'like', `%${searchTerm}%`);
