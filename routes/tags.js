@@ -55,7 +55,36 @@ router.post('/', (req, res, next) => {
     });
 });
 
-router.put('/:id', (req, res, next) => {});
+router.put('/:id', (req, res, next) => {
+  const item = {
+    id: req.params.id,
+    name: req.body.name
+  };
+  // Validate that request includes name in body (required)
+  if (!item.name) {
+    const err = new Error('Must include `name` in body.');
+    err.status = 400;
+    return next(err);
+  }
+
+  knex('tags')
+    .update({ name: item.name })
+    .where('id', item.id)
+    .returning(['id', 'name'])
+    .then((dbResponse) => {
+      if (!dbResponse.length) return next();
+      else return res.status(200).json(dbResponse[0]);
+    })
+    .catch(err => {
+      // Handle UNIQUE constraint violation
+      if (err.code === '23505') {
+        const error = new Error('This tag already exists.');
+        error.status = 400;
+        return next(error);
+      }
+      else return next(err);
+    });
+});
 
 router.delete('/:id', (req, res, next) => {});
 
