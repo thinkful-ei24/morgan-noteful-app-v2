@@ -22,7 +22,7 @@ const getNoteById = (id = null) => {
     .leftJoin('tags', 'tag_id', 'tags.id')
     .modify(queryBuilder => {
       if (id) {
-        queryBuilder.where('notes.id', id);
+        queryBuilder.andWhere('notes.id', id);
       }
     });
 };
@@ -31,17 +31,14 @@ const getNoteById = (id = null) => {
 router.get('/', (req, res, next) => {
   const searchTerm = req.query.searchTerm;
   const folderId = req.query.folderId;
-  // SELECT FROM notes LEFT JOIN folders ON notes.folder_id = folders.id
-  // (if searchTerm) WHERE title LIKE %searchTerm%
-  // (if folderId) WHERE folder_id = `folderId`
+  const tagId = req.query.tagId;
+
   getNoteById()
-    // Optional searchTerm filter
+    // Optional filters
     .modify(queryBuilder => {
-      if (searchTerm) queryBuilder.where('title', 'like', `%${searchTerm}%`);
-    })
-    // Optional folderId filter
-    .modify(queryBuilder => {
-      if (folderId) queryBuilder.where('folder_id', folderId);
+      if (searchTerm) queryBuilder.andWhere('title', 'like', `%${searchTerm}%`);
+      if (folderId) queryBuilder.andWhere('folder_id', folderId);
+      if (tagId) queryBuilder.andWhere('tag_id', tagId);
     })
     .orderBy('id')
     .then(dbResponse => {
