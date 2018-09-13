@@ -12,7 +12,19 @@ router.get('/', (req, res, next) => {
     .catch(err => next(err));
 });
 
-router.get('/:id', (req, res, next) => {});
+router.get('/:id', (req, res, next) => {
+  const id = req.params.id;
+
+  knex
+    .select(['id', 'name'])
+    .from('tags')
+    .where('id', id)
+    .then((dbResponse) => {
+      if (!dbResponse.length) return next();
+      else return res.status(200).json(dbResponse[0]);
+    })
+    .catch(err => next(err));
+});
 
 router.post('/', (req, res, next) => {});
 
