@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 
 router.get('/', (req, res, next) => {
+  // SELECT id, name FROM tags
   knex
     .select(['id', 'name'])
     .from('tags')
@@ -14,7 +15,7 @@ router.get('/', (req, res, next) => {
 
 router.get('/:id', (req, res, next) => {
   const id = req.params.id;
-
+  // SELECT id, name FROM tags WHERE id = `id`
   knex
     .select(['id', 'name'])
     .from('tags')
@@ -36,7 +37,7 @@ router.post('/', (req, res, next) => {
     err.status = 400;
     return next(err);
   }
-
+  // INSERT (name) INTO tags RETURNING id, name
   knex
     .insert(item)
     .into('tags')
@@ -66,7 +67,7 @@ router.put('/:id', (req, res, next) => {
     err.status = 400;
     return next(err);
   }
-
+  // UPDATE tags SET name = `item.name` WHERE id = `item.id` RETURNING id, name
   knex('tags')
     .update({ name: item.name })
     .where('id', item.id)
@@ -88,7 +89,7 @@ router.put('/:id', (req, res, next) => {
 
 router.delete('/:id', (req, res, next) => {
   const id = req.params.id;
-
+  // DELETE FROM tags WHERE id = `id`
   knex
     .delete()
     .from('tags')
